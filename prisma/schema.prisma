@@ -1,0 +1,216 @@
+// GlamWorldFace – Prisma Schema
+// PostgreSQL database for beauty pageant competition platform
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────────────────────────
+// User & Auth Models (NextAuth.js compatible)
+// ────────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  CONTESTANT
+  PUBLIC
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          UserRole  @default(PUBLIC)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  contestant Contestant?
+  votes      Vote[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ────────────────────────────────────────────────
+// App Domain Models
+// ────────────────────────────────────────────────
+
+model Contestant {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  height       Float?
+  weight       Float?
+  bodyType     String?
+  bio          String? @db.Text
+  country      String?
+  gender       String?
+  eyeColor     String?
+  hairColor    String?
+  instagram    String?
+  portfolioUrl String?
+  profileImage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images  ContestantImage[]
+  entries CompetitionEntry[]
+
+  @@map("contestants")
+}
+
+model ContestantImage {
+  id           String    @id @default(cuid())
+  contestantId String
+  imageUrl     String
+  imageType    ImageType
+  createdAt    DateTime  @default(now())
+
+  contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+
+  @@map("contestant_images")
+}
+
+enum ImageType {
+  FACE
+  FULL_BODY
+}
+
+// ────────────────────────────────────────────────
+// Competition Models
+// ────────────────────────────────────────────────
+
+enum CompetitionType {
+  JURY
+  PUBLIC_VOTING
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+model Competition {
+  id              String            @id @default(cuid())
+  title           String
+  description     String?           @db.Text
+  competitionType CompetitionType
+  startDate       DateTime
+  endDate         DateTime
+  status          CompetitionStatus @default(UPCOMING)
+  coverImage      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries CompetitionEntry[]
+  votes   Vote[]
+
+  @@map("competitions")
+}
+
+model CompetitionEntry {
+  id            String  @id @default(cuid())
+  competitionId String
+  contestantId  String
+  overallScore  Float?
+  voteCount     Int     @default(0)
+  rank          Int?
+  approved      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  competition  Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  contestant   Contestant   @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  scoreResults ScoreResult?
+
+  @@unique([competitionId, contestantId])
+  @@map("competition_entries")
+}
+
+model Vote {
+  id            String   @id @default(cuid())
+  competitionId String
+  contestantId  String
+  voterId       String
+  ipHash        String?
+  createdAt     DateTime @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  voter       User        @relation(fields: [voterId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, voterId])
+  @@map("votes")
+}
+
+model ScoreResult {
+  id                  String @id @default(cuid())
+  entryId             String @unique
+  presentationScore   Float?
+  confidenceScore     Float?
+  stylingScore        Float?
+  profileScore        Float?
+  professionalismScore Float?
+  overallScore        Float?
+
+  createdAt DateTime @default(now())
+
+  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@map("score_results")
+}

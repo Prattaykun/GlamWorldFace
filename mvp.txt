@@ -1,0 +1,396 @@
+Beauty Pageant Competition Platform – MVP Documentation
+Project Objective
+Build a web-based beauty pageant competition platform where contestants can join competitions and compete in two different modes:
+1.	Jury-based competitions 
+2.	Public voting competitions 
+The platform should allow contestants to create profiles, upload images, participate in competitions, receive scores or votes, and display rankings/leaderboards.
+The application should be developed as an MVP using a simple, scalable, and low-cost architecture.
+________________________________________
+Tech Stack
+Frontend + Backend
+•	Next.js 
+Use:
+•	App Router 
+•	API routes 
+•	Server Actions where required 
+________________________________________
+Database
+•	PostgreSQL 
+Database will be hosted inside the existing DigitalOcean server.
+________________________________________
+ORM
+•	Prisma 
+Use Prisma for:
+•	schema management 
+•	database migration 
+•	querying 
+________________________________________
+Authentication
+•	NextAuth.js 
+Login methods:
+•	Google Login 
+•	Email Login 
+________________________________________
+Image Storage
+•	DigitalOcean Spaces 
+Store:
+•	profile images 
+•	face images 
+•	full-body images 
+Save image URLs inside PostgreSQL.
+________________________________________
+Hosting
+Use existing DigitalOcean droplet/server.
+________________________________________
+User Roles
+1. Admin
+Admin should be able to:
+•	create competitions 
+•	choose competition type 
+•	approve contestants 
+•	view leaderboard 
+•	manage users 
+________________________________________
+2. Contestant
+Contestants should be able to:
+•	create account 
+•	build profile 
+•	upload images 
+•	join competitions 
+•	view rankings 
+•	share profile/results 
+________________________________________
+3. Public User
+Public users should be able to:
+•	browse competitions 
+•	view contestants 
+•	vote in public competitions 
+________________________________________
+Competition Types
+A. Jury Competition
+Contestants submit:
+•	profile 
+•	images 
+•	personal information 
+The system evaluates contestants and generates scores.
+Leaderboard should be generated using the stored score values.
+________________________________________
+B. Public Voting Competition
+Public users can vote for contestants.
+Rules:
+•	one account can vote only once per competition 
+•	duplicate voting should not be allowed 
+Leaderboard should be generated using vote count.
+________________________________________
+Core MVP Features
+FEATURE 1 — Authentication
+Required:
+•	signup 
+•	login 
+•	logout 
+User roles:
+•	admin 
+•	contestant 
+•	public user 
+________________________________________
+FEATURE 2 — Contestant Profile
+Contestant profile should include:
+Field	Type
+Full Name	String
+Age	Number
+Gender	String
+Country	String
+Height	Decimal
+Weight	Decimal
+Body Type	String
+Eye Color	String
+Hair Color	String
+Bio	Text
+Instagram Handle	String
+Portfolio Link	String
+Profile Image	String
+Face Images	Array
+Full Body Images	Array
+________________________________________
+FEATURE 3 — Competition Creation
+Admin should create competitions with:
+Field	Type
+Competition Title	String
+Description	Text
+Start Date	Date
+End Date	Date
+Competition Type	Enum
+Status	Enum
+Competition types:
+•	JURY 
+•	PUBLIC_VOTING 
+Competition statuses:
+•	UPCOMING 
+•	ACTIVE 
+•	COMPLETED 
+________________________________________
+FEATURE 4 — Contestant Registration to Competition
+Contestants can:
+•	browse active competitions 
+•	join competitions 
+•	submit required information 
+Admin can:
+•	approve/reject contestants 
+________________________________________
+FEATURE 5 — Image Upload
+Upload types:
+•	profile image 
+•	face image 
+•	full body image 
+Flow:
+Frontend
+↓
+Next.js API
+↓
+Upload to DigitalOcean Spaces
+↓
+Store URL in database
+________________________________________
+FEATURE 6 — Jury Scoring System
+After contestant approval:
+•	contestant data is processed 
+•	scores are generated 
+•	scores are stored in database 
+Scoring categories:
+•	presentation 
+•	confidence 
+•	styling 
+•	profile quality 
+•	professionalism 
+Store:
+•	category scores 
+•	overall score 
+________________________________________
+FEATURE 7 — Public Voting System
+Voting requirements:
+•	authenticated users only 
+•	one vote per competition 
+•	prevent duplicate votes 
+Flow:
+User votes
+↓
+Backend checks previous vote
+↓
+If already voted:
+    reject request
+Else:
+    save vote
+________________________________________
+FEATURE 8 — Leaderboard
+Jury Competitions
+Leaderboard sorted by:
+overall_score DESC
+________________________________________
+Public Voting Competitions
+Leaderboard sorted by:
+vote_count DESC
+________________________________________
+FEATURE 9 — Shareable Result Page
+Contestants should be able to:
+•	share profile 
+•	share rank 
+•	share competition result 
+Future enhancement:
+•	dynamic winner cards 
+________________________________________
+Database Structure
+TABLE — USERS
+id
+name
+email
+password_hash
+role
+created_at
+________________________________________
+TABLE — CONTESTANTS
+id
+user_id
+height
+weight
+body_type
+bio
+country
+gender
+instagram
+profile_image
+created_at
+________________________________________
+TABLE — CONTESTANT_IMAGES
+id
+contestant_id
+image_url
+image_type
+image_type:
+•	FACE 
+•	FULL_BODY 
+________________________________________
+TABLE — COMPETITIONS
+id
+title
+description
+competition_type
+start_date
+end_date
+status
+created_at
+________________________________________
+TABLE — COMPETITION_ENTRIES
+id
+competition_id
+contestant_id
+overall_score
+vote_count
+rank
+created_at
+________________________________________
+TABLE — VOTES
+id
+competition_id
+contestant_id
+voter_id
+ip_hash
+created_at
+Important database constraint:
+UNIQUE(competition_id, voter_id)
+This prevents duplicate voting.
+________________________________________
+TABLE — SCORE_RESULTS
+id
+entry_id
+presentation_score
+confidence_score
+styling_score
+profile_score
+professionalism_score
+overall_score
+created_at
+________________________________________
+Folder Structure
+/app
+  /admin
+  /dashboard
+  /competitions
+  /contestants
+  /vote
+  /api
+
+/components
+/lib
+/services
+/prisma
+/hooks
+/utils
+________________________________________
+Required Pages
+Public Pages
+/
+competitions
+competition/[id]
+contestant/[id]
+leaderboard/[id]
+________________________________________
+Contestant Dashboard
+/dashboard
+/dashboard/profile
+/dashboard/competitions
+________________________________________
+Admin Dashboard
+/admin
+/admin/competitions
+/admin/create-competition
+/admin/users
+________________________________________
+API Endpoints
+Authentication
+/api/auth/*
+________________________________________
+Competitions
+/api/competitions
+/api/competitions/[id]
+________________________________________
+Contestants
+/api/contestants
+/api/contestants/[id]
+________________________________________
+Voting
+/api/vote
+________________________________________
+Scoring
+/api/score
+________________________________________
+Environment Variables
+DATABASE_URL=
+NEXTAUTH_SECRET=
+
+SPACES_KEY=
+SPACES_SECRET=
+SPACES_BUCKET=
+SPACES_REGION=
+
+APP_URL=
+________________________________________
+Deployment Setup
+Application should run inside existing DigitalOcean server.
+Recommended setup:
+DigitalOcean Server
+│
+├── Next.js App
+├── PostgreSQL
+├── NGINX
+└── PM2
+________________________________________
+Deployment Steps
+Install Dependencies
+npm install
+________________________________________
+Run Database Migration
+npx prisma migrate dev
+________________________________________
+Build Application
+npm run build
+________________________________________
+Start Production Server
+pm2 start npm --name pageant-app -- start
+________________________________________
+Security Requirements
+Must implement:
+•	password hashing 
+•	authentication validation 
+•	protected admin routes 
+•	upload validation 
+•	duplicate vote prevention 
+________________________________________
+MVP Development Priority
+Phase 1
+•	Authentication 
+•	Contestant profiles 
+•	Competition creation 
+________________________________________
+Phase 2
+•	Public voting system 
+•	Leaderboard 
+________________________________________
+Phase 3
+•	Jury scoring system 
+•	Admin controls 
+________________________________________
+Phase 4
+•	Social sharing 
+•	Public profile improvements 
+________________________________________
+Important Notes
+•	Keep UI simple and responsive 
+•	Mobile-first design preferred 
+•	Avoid unnecessary animations 
+•	Focus on functionality first 
+•	Use reusable components 
+•	Keep API structure clean 
+•	Maintain proper validation 
+•	Store scores permanently after generation 
+•	Do not recalculate scores repeatedly 
+
