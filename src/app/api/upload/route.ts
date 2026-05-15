@@ -38,6 +38,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Contestant profile not found." }, { status: 404 });
     }
 
+    let newImageId: string | undefined;
+
     if (folder === "profile") {
       // Update profileImage field on Contestant
       await prisma.contestant.update({
@@ -47,16 +49,17 @@ export async function POST(req: NextRequest) {
     } else {
       // Insert into ContestantImage table
       const prismaImageType = folder === "face" ? "FACE" : "FULL_BODY";
-      await prisma.contestantImage.create({
+      const newImage = await prisma.contestantImage.create({
         data: {
           contestantId: contestant.id,
           imageUrl: url,
           imageType: prismaImageType,
         },
       });
+      newImageId = newImage.id;
     }
 
-    return NextResponse.json({ url });
+    return NextResponse.json({ url, id: newImageId });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed.";
     return NextResponse.json({ error: message }, { status: 500 });

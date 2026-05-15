@@ -186,7 +186,7 @@ export function ImageManager({
           ) : (
             faceImages.map((img, i) => (
               <ImageTile
-                key={img.id}
+                key={img.id || img.url}
                 url={img.url}
                 alt={`Face image ${i + 1}`}
                 onDelete={() => handleDeleteImage(img.id, img.url)}
@@ -230,7 +230,7 @@ export function ImageManager({
           ) : (
             bodyImages.map((img, i) => (
               <ImageTile
-                key={img.id}
+                key={img.id || img.url}
                 url={img.url}
                 alt={`Full body image ${i + 1}`}
                 onDelete={() => handleDeleteImage(img.id, img.url)}

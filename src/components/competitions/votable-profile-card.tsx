@@ -95,64 +95,56 @@ function ImageCarousel({
   const next = () => setIdx((i) => (i + 1) % total);
 
   return (
-    <div className="space-y-3">
-      <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-        <Star className="size-3.5 text-primary" />
-        Gallery
-      </h3>
-
+    <div className="relative h-full w-full bg-muted">
       {/* Main carousel image */}
-      <div className="relative overflow-hidden rounded-xl">
-        <div className="relative aspect-[3/4] w-full">
-          <Image
-            key={images[idx].id}
-            src={images[idx].imageUrl}
-            alt={`${name ?? "Contestant"} — photo ${idx + 1}`}
-            fill
-            unoptimized={images[idx].imageUrl.startsWith("/")}
-            className="object-cover transition-opacity duration-300"
-            sizes="(max-width: 768px) 100vw, 500px"
-          />
-          {/* Type label */}
-          <span className="absolute bottom-3 left-3 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold text-white capitalize">
-            {images[idx].imageType === "FACE" ? "Face" : "Full Body"}
-          </span>
-        </div>
+      <Image
+        key={images[idx].id}
+        src={images[idx].imageUrl}
+        alt={`${name ?? "Contestant"} — photo ${idx + 1}`}
+        fill
+        priority={idx === 0}
+        unoptimized={images[idx].imageUrl.startsWith("/")}
+        className="object-cover transition-opacity duration-300"
+        sizes="(max-width: 768px) 100vw, 500px"
+      />
+      {/* Type label */}
+      <span className="absolute bottom-3 left-3 z-10 rounded-full bg-black/60 px-2.5 py-0.5 text-[10px] font-semibold text-white capitalize">
+        {images[idx].imageType === "FACE" ? "Face" : images[idx].imageType === "FULL_BODY" ? "Full Body" : "Profile"}
+      </span>
 
-        {/* Prev/next arrows (only when multiple images) */}
-        {total > 1 && (
-          <>
-            <button
-              onClick={prev}
-              aria-label="Previous photo"
-              className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70 active:scale-90"
-            >
-              <ChevronLeft className="size-4" />
-            </button>
-            <button
-              onClick={next}
-              aria-label="Next photo"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70 active:scale-90"
-            >
-              <ChevronRight className="size-4" />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Dot indicators + thumbnail strip */}
+      {/* Prev/next arrows (only when multiple images) */}
       {total > 1 && (
-        <div className="flex items-center justify-center gap-1.5">
+        <>
+          <button
+            onClick={prev}
+            aria-label="Previous photo"
+            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:bg-black/60 active:scale-90"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+          <button
+            onClick={next}
+            aria-label="Next photo"
+            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white backdrop-blur-md transition-all hover:bg-black/60 active:scale-90"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </>
+      )}
+
+      {/* Dot indicators */}
+      {total > 1 && (
+        <div className="absolute bottom-4 left-0 right-0 z-10 flex items-center justify-center gap-1.5 drop-shadow-md">
           {images.map((img, i) => (
             <button
-              key={img.id}
+              key={img.id || i}
               onClick={() => setIdx(i)}
               aria-label={`Go to photo ${i + 1}`}
               className={cn(
                 "h-1.5 rounded-full transition-all",
                 i === idx
-                  ? "w-6 bg-primary"
-                  : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60"
+                  ? "w-6 bg-white"
+                  : "w-1.5 bg-white/50 hover:bg-white/80"
               )}
             />
           ))}
@@ -327,31 +319,23 @@ export function VotableProfileCard(props: VotableProfileCardProps) {
         {voted && <VotedRibbon animate={showRibbonAnimate} />}
 
         {/* Hero image */}
-        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted">
-          {contestant.profileImage ? (
-            <Image
-              src={contestant.profileImage}
-              alt={contestant.name ?? "Contestant"}
-              fill
-              unoptimized={contestant.profileImage.startsWith("/")}
-              className="object-cover"
-              sizes="100vw"
-              priority
-            />
+        <div className="relative aspect-[4/5] w-full overflow-hidden bg-muted group">
+          {uniqueImages.length > 0 ? (
+            <ImageCarousel images={uniqueImages} name={contestant.name} />
           ) : (
             <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 text-8xl font-black text-primary/30">
               {(contestant.name ?? "?")[0].toUpperCase()}
             </div>
           )}
           {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
           {/* Name overlay on hero */}
-          <div className="absolute bottom-0 left-0 right-0 p-5">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground drop-shadow-sm">
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 p-5 z-20 pb-8">
+            <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-md">
               {contestant.name ?? "Contestant"}
             </h1>
             {contestant.country && (
-              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <p className="mt-0.5 flex items-center gap-1.5 text-sm text-white/90 drop-shadow">
                 <MapPin className="size-3.5" />
                 {contestant.country}
               </p>
@@ -458,11 +442,6 @@ export function VotableProfileCard(props: VotableProfileCardProps) {
             )}
           </div>
 
-          {/* Gallery carousel */}
-          <ImageCarousel
-            images={uniqueImages.filter((img) => img.id !== "profile")}
-            name={contestant.name}
-          />
 
           {/* Vote section */}
           <VoteSection {...props} onVoted={handleVoted} hasVoted={voted} />
@@ -475,23 +454,15 @@ export function VotableProfileCard(props: VotableProfileCardProps) {
         {voted && <VotedRibbon animate={showRibbonAnimate} />}
 
         {/* Left: hero image */}
-        <div className="relative min-h-[600px] overflow-hidden bg-muted">
-          {contestant.profileImage ? (
-            <Image
-              src={contestant.profileImage}
-              alt={contestant.name ?? "Contestant"}
-              fill
-              unoptimized={contestant.profileImage.startsWith("/")}
-              className="object-cover"
-              sizes="420px"
-              priority
-            />
+        <div className="relative min-h-[600px] overflow-hidden bg-muted group">
+          {uniqueImages.length > 0 ? (
+            <ImageCarousel images={uniqueImages} name={contestant.name} />
           ) : (
             <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 text-[120px] font-black text-primary/20">
               {(contestant.name ?? "?")[0].toUpperCase()}
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
         </div>
 
         {/* Right: details + vote */}
@@ -563,34 +534,6 @@ export function VotableProfileCard(props: VotableProfileCardProps) {
             </div>
           )}
 
-          {/* Gallery (compact grid on desktop) */}
-          {uniqueImages.filter((img) => img.id !== "profile").length > 0 && (
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Gallery
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {uniqueImages
-                  .filter((img) => img.id !== "profile")
-                  .slice(0, 6)
-                  .map((img) => (
-                    <div
-                      key={img.id}
-                      className="relative aspect-square overflow-hidden rounded-lg bg-muted"
-                    >
-                      <Image
-                        src={img.imageUrl}
-                        alt="Gallery photo"
-                        fill
-                        unoptimized={img.imageUrl.startsWith("/")}
-                        className="object-cover"
-                        sizes="120px"
-                      />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
 
           {/* Social */}
           <div className="flex flex-wrap gap-2">

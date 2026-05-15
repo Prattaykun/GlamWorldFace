@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, Settings } from "lucide-react";
+import { Plus, Users, Settings, Trophy } from "lucide-react";
 import { StatusBadge, TypeBadge } from "@/components/competitions/status-badge";
 import { EditCompetitionModal } from "@/components/admin/edit-competition-modal";
 
@@ -83,7 +83,13 @@ export default async function AdminCompetitionsPage() {
                         <Button asChild variant="secondary" size="sm" className="h-8 text-xs">
                           <Link href={`/admin/competitions/${comp.id}/entries`}>
                             <Settings className="mr-1.5 size-3" />
-                            Manage Entries
+                            Manage
+                          </Link>
+                        </Button>
+                        <Button asChild variant="default" size="sm" className="h-8 text-xs bg-yellow-600 hover:bg-yellow-700">
+                          <Link href={`/admin/competitions/${comp.id}/results`}>
+                            <Trophy className="mr-1.5 size-3" />
+                            Results
                           </Link>
                         </Button>
                       </div>

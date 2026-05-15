@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { LogOut, LayoutDashboard, Shield, User, Gavel } from "lucide-react";
-import { signOutAction } from "@/app/actions/auth";
+import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -128,17 +128,10 @@ export function UserMenu() {
 
         <DropdownMenuSeparator />
 
-        <form action={signOutAction}>
-          <DropdownMenuItem>
-            <button
-              type="submit"
-              className="flex w-full items-center gap-2 text-destructive"
-            >
-              <LogOut className="size-4" />
-              Sign Out
-            </button>
-          </DropdownMenuItem>
-        </form>
+        <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/" })} className="text-destructive cursor-pointer">
+          <LogOut className="mr-2 size-4" />
+          Sign Out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

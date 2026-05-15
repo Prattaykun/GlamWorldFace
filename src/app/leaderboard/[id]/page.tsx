@@ -83,8 +83,18 @@ export default async function ShareableLeaderboardPage({ params }: Props) {
 
   if (!competition) notFound();
 
+  // If results are announced, re-sort by official rank
+  if (competition.resultsAnnounced) {
+    competition.entries.sort((a, b) => {
+      if (a.rank !== null && b.rank !== null) return a.rank - b.rank;
+      if (a.rank !== null) return -1;
+      if (b.rank !== null) return 1;
+      return 0;
+    });
+  }
+
   const entries = competition.entries.map((entry, idx) => ({
-    rank: idx + 1,
+    rank: competition.resultsAnnounced && entry.rank !== null ? entry.rank : idx + 1,
     contestantId: entry.contestantId,
     name: entry.contestant.user.name,
     country: entry.contestant.country,
@@ -131,9 +141,24 @@ export default async function ShareableLeaderboardPage({ params }: Props) {
           <Calendar className="size-4" />
           {competition.status === "COMPLETED" ? `Ended on ${end}` : `Ends on ${end}`}
         </p>
+
+        {competition.resultsAnnounced && (
+          <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
+            </span>
+            Official Results Announced
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+        {!competition.resultsAnnounced && competition.status !== "COMPLETED" && (
+          <div className="bg-muted/50 px-6 py-3 text-center text-xs text-muted-foreground border-b border-border">
+            Results are provisional until the competition officially concludes.
+          </div>
+        )}
         <LeaderboardTable entries={entries} type={competition.competitionType} />
       </div>
 

@@ -90,7 +90,7 @@ export function ProfileForm({ defaultValues }: { defaultValues: DefaultValues })
   const e = state?.errors ?? {};
 
   return (
-    <form action={action} className="space-y-8">
+    <form key={JSON.stringify(defaultValues)} action={action} className="space-y-8">
       {/* ── Section: Personal Information ── */}
       <section>
         <h2 className="mb-4 text-base font-semibold">Personal Information</h2>

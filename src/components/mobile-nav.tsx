@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import {
   Menu,
   LogOut,
@@ -14,7 +14,6 @@ import {
   BarChart3,
   Gavel,
 } from "lucide-react";
-import { signOutAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -170,16 +169,14 @@ export function MobileNav() {
                 })}
               </div>
 
-              {/* Sign out */}
-              <form action={signOutAction}>
-                <button
-                  type="submit"
-                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  <LogOut className="size-4" />
-                  Sign Out
-                </button>
-              </form>
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <LogOut className="size-4" />
+                Sign Out
+              </button>
             </div>
           ) : (
             <div className="flex flex-col gap-2">

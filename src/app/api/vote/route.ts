@@ -56,17 +56,22 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {
-    // Prisma P2002 = unique constraint violation → already voted
-    if (
-      typeof err === "object" &&
-      err !== null &&
-      "code" in err &&
-      (err as { code: string }).code === "P2002"
-    ) {
-      return NextResponse.json(
-        { error: "You have already voted in this competition." },
-        { status: 409 }
-      );
+    if (typeof err === "object" && err !== null && "code" in err) {
+      const prismaError = err as { code: string };
+      // Prisma P2002 = unique constraint violation → already voted
+      if (prismaError.code === "P2002") {
+        return NextResponse.json(
+          { error: "You have already voted in this competition." },
+          { status: 409 }
+        );
+      }
+      // Prisma P2003 = foreign key constraint violation → invalid voterId
+      if (prismaError.code === "P2003") {
+        return NextResponse.json(
+          { error: "Your session is invalid or your account was deleted. Please log in again." },
+          { status: 401 }
+        );
+      }
     }
     console.error("Vote error:", err);
     return NextResponse.json({ error: "Failed to cast vote." }, { status: 500 });

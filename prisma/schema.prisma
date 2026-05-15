@@ -192,6 +192,7 @@ model Competition {
   startDate       DateTime
   endDate         DateTime
   status          CompetitionStatus @default(UPCOMING)
+  resultsAnnounced Boolean          @default(false)
   coverImage      String?
 
   // ── Scoring configuration (admin-defined per competition) ──

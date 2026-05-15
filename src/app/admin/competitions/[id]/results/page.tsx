@@ -3,9 +3,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Trophy } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { StatusBadge, TypeBadge } from "@/components/competitions/status-badge";
-import { EntryList } from "@/components/admin/entry-list";
+import { DeclareResultsPanel } from "@/components/admin/declare-results-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,67 +16,59 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   const comp = await prisma.competition.findUnique({ where: { id }, select: { title: true } });
-  return { title: `Entries: ${comp?.title ?? "Competition"} | Admin` };
+  return { title: `Declare Results: ${comp?.title ?? "Competition"} | Admin` };
 }
 
-export default async function AdminCompetitionEntriesPage({ params }: Props) {
+export default async function AdminCompetitionResultsPage({ params }: Props) {
   const { id } = await params;
 
   const competition = await prisma.competition.findUnique({
     where: { id },
     include: {
       entries: {
+        where: { approved: true },
         include: {
           contestant: {
             include: {
-              user: { select: { name: true, email: true } },
+              user: { select: { name: true } },
             },
           },
         },
-        orderBy: { createdAt: "desc" },
-      },
-      juryAssignments: {
-        include: {
-          juryUser: { select: { name: true, email: true } },
-        },
+        orderBy: [
+          { finalScore: "desc" },
+          { overallScore: "desc" },
+          { voteCount: "desc" },
+        ],
       },
     },
   });
 
   if (!competition) notFound();
 
-  // Map to the simplified type expected by the client component
+  // Map entries to the expected format
   const mappedEntries = competition.entries.map((e) => ({
     id: e.id,
-    approved: e.approved,
-    overallScore: e.overallScore,
-    finalScore: e.finalScore,
+    rank: e.rank,
     voteCount: e.voteCount,
+    finalScore: e.finalScore,
+    overallScore: e.overallScore,
     contestant: {
       id: e.contestant.id,
       profileImage: e.contestant.profileImage,
+      country: e.contestant.country,
       user: {
         name: e.contestant.user.name,
-        email: e.contestant.user.email,
       },
     },
   }));
 
-  const mappedJurors = competition.juryAssignments.map((a) => ({
-    id: a.id,
-    juryUser: {
-      name: a.juryUser.name,
-      email: a.juryUser.email,
-    },
-  }));
-
   return (
-    <Container className="py-12">
+    <Container className="py-12 max-w-4xl">
       {/* Back link */}
       <Button asChild variant="ghost" className="mb-6 -ml-4 text-muted-foreground hover:text-foreground">
-        <Link href="/admin/competitions">
+        <Link href={`/admin/competitions/${id}/entries`}>
           <ChevronLeft className="mr-1.5 size-4" />
-          Back to Competitions
+          Back to Entries
         </Link>
       </Button>
 
@@ -87,30 +79,27 @@ export default async function AdminCompetitionEntriesPage({ params }: Props) {
           <TypeBadge type={competition.competitionType} />
         </div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mb-1">
-          {competition.title}
+          Declare Results: {competition.title}
         </h1>
         <p className="text-muted-foreground">
-          Manage {competition.entries.length} contestant entries
-          {competition.competitionType === "JURY" &&
-            ` · ${competition.juryAssignments.length} juror${competition.juryAssignments.length !== 1 ? "s" : ""} assigned`}
-          .
+          Review the final standings and announce the winners.
         </p>
-        <div className="mt-4">
-          <Button asChild variant="default" className="bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-700 hover:to-yellow-600">
-            <Link href={`/admin/competitions/${id}/results`}>
-              <Trophy className="mr-2 size-4" />
-              Declare Results
-            </Link>
-          </Button>
-        </div>
       </div>
 
-      <EntryList
-        entries={mappedEntries}
-        competitionId={id}
-        competitionType={competition.competitionType}
-        assignedJurors={mappedJurors}
-      />
+      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+        {mappedEntries.length === 0 ? (
+          <div className="py-12 text-center text-muted-foreground">
+            No approved entries to rank.
+          </div>
+        ) : (
+          <DeclareResultsPanel
+            competitionId={competition.id}
+            competitionType={competition.competitionType}
+            resultsAnnounced={competition.resultsAnnounced}
+            entries={mappedEntries}
+          />
+        )}
+      </div>
     </Container>
   );
 }

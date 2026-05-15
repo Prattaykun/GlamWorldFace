@@ -186,6 +186,69 @@ export async function updateCompetitionStatusAction(
 }
 
 // ════════════════════════════════════════════════════════════
+// DECLARE RESULTS  (admin only)
+// ════════════════════════════════════════════════════════════
+
+export type DeclareResultsState = {
+  error?: string;
+  success?: boolean;
+} | null;
+
+/**
+ * Admin action: assign ranks to approved entries and officially announce results.
+ * ranks is a map of entryId -> rank (1-based).
+ * Setting resultsAnnounced=true makes results visible on contestant dashboards and leaderboard.
+ */
+export async function declareResultsAction(
+  competitionId: string,
+  ranks: Record<string, number>,
+  announce: boolean
+): Promise<DeclareResultsState> {
+  try {
+    await requireAdmin();
+
+    const competition = await prisma.competition.findUnique({
+      where: { id: competitionId },
+      select: { id: true },
+    });
+    if (!competition) return { error: "Competition not found." };
+
+    // Update each entry's rank
+    const updates = Object.entries(ranks).map(([entryId, rank]) =>
+      prisma.competitionEntry.update({
+        where: { id: entryId },
+        data: { rank },
+      })
+    );
+
+    await prisma.$transaction([
+      ...updates,
+      prisma.competition.update({
+        where: { id: competitionId },
+        data: {
+          resultsAnnounced: announce,
+          ...(announce ? { status: "COMPLETED" as CompetitionStatus } : {}),
+        },
+      }),
+    ]);
+
+    revalidatePath(`/admin/competitions/${competitionId}/results`);
+    revalidatePath(`/admin/competitions`);
+    revalidatePath(`/leaderboard/${competitionId}`);
+    revalidatePath(`/dashboard/results`);
+    revalidatePath(`/competitions/${competitionId}`);
+
+    return { success: true };
+  } catch (err) {
+    if (err instanceof Error && err.message === "Unauthorized") {
+      return { error: "Unauthorized" };
+    }
+    console.error("[declareResultsAction]", err);
+    return { error: "Failed to declare results." };
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // JOIN COMPETITION  (contestant)
 // ════════════════════════════════════════════════════════════
 

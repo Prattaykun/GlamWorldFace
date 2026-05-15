@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Trophy, BarChart3 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { StatusBadge, TypeBadge } from "@/components/competitions/status-badge";
 
@@ -133,16 +134,32 @@ export default async function ResultsPage() {
                         </Link>
                       </CardTitle>
                     </div>
-                    {entry.finalScore !== null && (
-                      <div className="text-center sm:text-right">
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                          Final Score
-                        </p>
-                        <p className="text-3xl font-bold text-primary">
-                          {entry.finalScore.toFixed(1)}
-                        </p>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-4 text-center sm:text-right">
+                      {entry.competition.resultsAnnounced && entry.rank && (
+                        <div className="flex flex-col items-center">
+                          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                            Official Rank
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            {entry.rank <= 3 && <Trophy className={cn("size-5", entry.rank === 1 ? "text-yellow-500" : entry.rank === 2 ? "text-slate-400" : "text-amber-600")} />}
+                            <span className="text-3xl font-extrabold text-foreground">
+                              #{entry.rank}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {entry.finalScore !== null && (
+                        <div className="pl-4 sm:border-l sm:border-border">
+                          <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                            Final Score
+                          </p>
+                          <p className="text-3xl font-bold text-primary mt-1">
+                            {entry.finalScore.toFixed(1)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
 
