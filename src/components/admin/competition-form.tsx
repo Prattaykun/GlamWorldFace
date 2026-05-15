@@ -118,11 +118,12 @@ export function CompetitionForm() {
                 id="scoringCriteria"
                 name="scoringCriteria"
                 rows={4}
-                placeholder={`Example:
+                defaultValue={`Example:
 • Focus heavily on international appeal and multilingual ability
 • Contestants with verified pageant achievements should score higher on Confidence
 • Professional tone in bio is critical — deduct points for informal writing
 • Strong emphasis on fitness and wellness lifestyle`}
+                placeholder="Enter scoring criteria here..."
                 className="min-h-[120px] resize-none text-sm"
               />
               <p className="text-[11px] text-muted-foreground">
@@ -143,7 +144,7 @@ export function CompetitionForm() {
                 id="scoringThresholds"
                 name="scoringThresholds"
                 rows={6}
-                placeholder={`{
+                defaultValue={`{
   "minAge": 18,
   "maxAge": 30,
   "requiredGender": "Female",
@@ -156,6 +157,7 @@ export function CompetitionForm() {
     "professionalism": 1.3
   }
 }`}
+                placeholder="Enter JSON threshold settings here..."
                 className="min-h-[160px] resize-none font-mono text-xs"
               />
               <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground">

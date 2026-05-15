@@ -4,6 +4,7 @@ import { Container } from "@/components/container";
 import { Button } from "@/components/ui/button";
 import { Plus, Users, Settings } from "lucide-react";
 import { StatusBadge, TypeBadge } from "@/components/competitions/status-badge";
+import { EditCompetitionModal } from "@/components/admin/edit-competition-modal";
 
 export const metadata = {
   title: "Manage Competitions | Admin",
@@ -77,12 +78,15 @@ export default async function AdminCompetitionsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button asChild variant="secondary" size="sm" className="h-8 text-xs">
-                        <Link href={`/admin/competitions/${comp.id}/entries`}>
-                          <Settings className="mr-1.5 size-3" />
-                          Manage Entries
-                        </Link>
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <EditCompetitionModal competition={comp} />
+                        <Button asChild variant="secondary" size="sm" className="h-8 text-xs">
+                          <Link href={`/admin/competitions/${comp.id}/entries`}>
+                            <Settings className="mr-1.5 size-3" />
+                            Manage Entries
+                          </Link>
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

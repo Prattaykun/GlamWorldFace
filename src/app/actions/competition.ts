@@ -108,6 +108,69 @@ export async function createCompetitionAction(
   }
 }
 
+export async function editCompetitionAction(
+  _prev: CompetitionFormState,
+  formData: FormData
+): Promise<CompetitionFormState> {
+  try {
+    const adminId = await requireAdmin();
+
+    const id = formData.get("id") as string;
+    if (!id) return { error: "Competition ID is required." };
+
+    const raw = {
+      title: formData.get("title"),
+      description: formData.get("description") || null,
+      competitionType: formData.get("competitionType"),
+      status: formData.get("status") || "UPCOMING",
+      startDate: formData.get("startDate"),
+      endDate: formData.get("endDate"),
+      scoringCriteria: formData.get("scoringCriteria") || null,
+      scoringThresholds: formData.get("scoringThresholds") || null,
+    };
+
+    const parsed = CompetitionSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { errors: parsed.error.flatten().fieldErrors };
+    }
+
+    const data = parsed.data;
+
+    let thresholdsJson = null;
+    if (data.scoringThresholds) {
+      try {
+        thresholdsJson = JSON.parse(data.scoringThresholds);
+      } catch {
+        return { errors: { scoringThresholds: ["Invalid JSON format"] } };
+      }
+    }
+
+    await prisma.competition.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        competitionType: data.competitionType as CompetitionType,
+        status: data.status as CompetitionStatus,
+        startDate: new Date(data.startDate),
+        endDate: new Date(data.endDate),
+        scoringCriteria: data.scoringCriteria,
+        scoringThresholds: thresholdsJson,
+      },
+    });
+
+    revalidatePath("/admin/competitions");
+    revalidatePath("/competitions");
+    revalidatePath(`/competitions/${id}`);
+    return { success: true };
+  } catch (err) {
+    if (err instanceof Error && err.message === "Unauthorized") {
+      return { error: "Unauthorized" };
+    }
+    return { error: "Failed to update competition." };
+  }
+}
+
 export async function updateCompetitionStatusAction(
   competitionId: string,
   status: "UPCOMING" | "ACTIVE" | "COMPLETED"
