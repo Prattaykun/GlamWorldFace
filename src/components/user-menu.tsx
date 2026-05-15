@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { LogOut, LayoutDashboard, Shield, User } from "lucide-react";
+import { LogOut, LayoutDashboard, Shield, User, Gavel } from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +63,7 @@ export function UserMenu() {
   // Authenticated → show avatar dropdown
   const user = session.user;
   const isAdmin = user.role === "ADMIN";
+  const isJury = user.role === "JURY";
 
   return (
     <DropdownMenu>
@@ -112,6 +113,15 @@ export function UserMenu() {
             <Link href="/admin" className="flex w-full items-center gap-2">
               <Shield className="size-4" />
               Admin Panel
+            </Link>
+          </DropdownMenuItem>
+        )}
+
+        {isJury && (
+          <DropdownMenuItem>
+            <Link href="/jury" className="flex w-full items-center gap-2">
+              <Gavel className="size-4" />
+              Jury Dashboard
             </Link>
           </DropdownMenuItem>
         )}

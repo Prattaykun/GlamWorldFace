@@ -1,5 +1,7 @@
-// GlamWorldFace – Prisma Schema
-// PostgreSQL database for beauty pageant competition platform
+// ╔═══════════════════════════════════════════════════════════════╗
+// ║         GlamWorldFace — Prisma Schema                        ║
+// ║         PostgreSQL · Beauty Pageant Competition Platform      ║
+// ╚═══════════════════════════════════════════════════════════════╝
 
 generator client {
   provider = "prisma-client"
@@ -11,34 +13,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ────────────────────────────────────────────────
-// User & Auth Models (NextAuth.js compatible)
-// ────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// ENUMS
+// ════════════════════════════════════════════════════════════════
 
 enum UserRole {
   ADMIN
   CONTESTANT
   PUBLIC
+  JURY
 }
 
+enum ImageType {
+  FACE
+  FULL_BODY
+}
+
+enum CompetitionType {
+  JURY
+  PUBLIC_VOTING
+}
+
+enum CompetitionStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+/// Distinguishes between a human jury score and an LLM system score.
+enum ScoreSource {
+  HUMAN
+  SYSTEM
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUTH MODELS  (NextAuth.js / Auth.js v5 adapter-compatible)
+// ════════════════════════════════════════════════════════════════
+
+/// Platform user. Doubles as an Auth.js user record.
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String    @unique
   emailVerified DateTime?
-  image         String?
-  passwordHash  String?
+  image         String?                     // OAuth avatar URL
+  passwordHash  String?                     // null for OAuth-only accounts
   role          UserRole  @default(PUBLIC)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // NextAuth relations
+  // ── NextAuth adapter relations ──
   accounts Account[]
   sessions Session[]
 
-  // App relations
-  contestant Contestant?
-  votes      Vote[]
+  // ── App relations ──
+  contestant         Contestant?
+  votes              Vote[]
+  competitionsCreated Competition[] @relation("CompetitionCreatedBy")
+  juryAssignments    JuryAssignment[]
+  juryScores         JuryScore[]
 
   @@map("users")
 }
@@ -83,35 +116,56 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// ────────────────────────────────────────────────
-// App Domain Models
-// ────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+// CONTESTANT PROFILE
+// ════════════════════════════════════════════════════════════════
 
+/// Extended profile created after a user registers as a contestant.
 model Contestant {
   id           String  @id @default(cuid())
   userId       String  @unique
-  height       Float?
-  weight       Float?
-  bodyType     String?
-  bio          String? @db.Text
-  country      String?
+
+  // ── Identity ──
+  age          Int?
   gender       String?
+  country      String?
+
+  // ── Physical ──
+  height       Float?          // cm
+  weight       Float?          // kg
+  bodyType     String?
   eyeColor     String?
   hairColor    String?
+
+  // ── Bio & Social ──
+  bio          String? @db.Text
   instagram    String?
   portfolioUrl String?
-  profileImage String?
+
+  // ── Extended fields (for richer LLM scoring) ──
+  goals        String? @db.Text   // aspirations, future plans
+  achievements String? @db.Text   // awards, titles, prior pageants
+  languages    String?             // comma-separated, e.g. "English, Hindi"
+  occupation   String?             // profession / current occupation
+  personality  String? @db.Text   // personality highlights, interests
+
+  // ── Media ──
+  profileImage String?         // URL (DO Spaces or local /uploads)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ── Relations ──
   user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   images  ContestantImage[]
   entries CompetitionEntry[]
+  votes   Vote[]
 
+  @@index([userId])
   @@map("contestants")
 }
 
+/// Individual photos uploaded by a contestant (face or full-body).
 model ContestantImage {
   id           String    @id @default(cuid())
   contestantId String
@@ -121,29 +175,15 @@ model ContestantImage {
 
   contestant Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)
 
+  @@index([contestantId, imageType])
   @@map("contestant_images")
 }
 
-enum ImageType {
-  FACE
-  FULL_BODY
-}
+// ════════════════════════════════════════════════════════════════
+// COMPETITION
+// ════════════════════════════════════════════════════════════════
 
-// ────────────────────────────────────────────────
-// Competition Models
-// ────────────────────────────────────────────────
-
-enum CompetitionType {
-  JURY
-  PUBLIC_VOTING
-}
-
-enum CompetitionStatus {
-  UPCOMING
-  ACTIVE
-  COMPLETED
-}
-
+/// A competition created by an admin. Can be jury-based or public voting.
 model Competition {
   id              String            @id @default(cuid())
   title           String
@@ -154,63 +194,217 @@ model Competition {
   status          CompetitionStatus @default(UPCOMING)
   coverImage      String?
 
+  // ── Scoring configuration (admin-defined per competition) ──
+  /// Free-text scoring guidelines the LLM uses when evaluating contestants.
+  /// Example: "Focus heavily on international appeal and multilingual ability.
+  /// Contestants with verified achievements should score higher."
+  scoringCriteria    String? @db.Text
+
+  /// Structured thresholds in JSON format. Example:
+  /// { "minAge": 18, "maxAge": 30, "requiredGender": "Female",
+  ///   "categoryWeights": { "presentation": 1.5, "confidence": 1.0, ... },
+  ///   "focusAreas": ["international appeal", "fitness"] }
+  scoringThresholds  Json?
+
+  // The admin user who created this competition
+  createdById     String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  entries CompetitionEntry[]
-  votes   Vote[]
+  // ── Relations ──
+  createdBy       User?              @relation("CompetitionCreatedBy", fields: [createdById], references: [id])
+  entries         CompetitionEntry[]
+  votes           Vote[]
+  juryAssignments JuryAssignment[]
 
+  // ── Indexes ──
+  @@index([status])
+  @@index([competitionType, status])
   @@map("competitions")
 }
 
+// ════════════════════════════════════════════════════════════════
+// JURY ASSIGNMENT  (links jury users to competitions)
+// ════════════════════════════════════════════════════════════════
+
+/// A many-to-many relationship between jury users and competitions.
+/// Design choice: a proper join table vs JSON array enables:
+///   - efficient "find competitions for this jury" queries
+///   - referential integrity via foreign keys
+///   - future expansion (e.g. assignment date, permissions)
+model JuryAssignment {
+  id            String @id @default(cuid())
+  competitionId String
+  juryUserId    String
+
+  createdAt DateTime @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  juryUser    User        @relation(fields: [juryUserId], references: [id], onDelete: Cascade)
+
+  // Each jury can only be assigned once per competition
+  @@unique([competitionId, juryUserId])
+  @@index([juryUserId])
+  @@map("jury_assignments")
+}
+
+// ════════════════════════════════════════════════════════════════
+// COMPETITION ENTRY
+// ════════════════════════════════════════════════════════════════
+
+/// Contestant's entry into a specific competition.
+/// For jury comps: finalScore is the weighted combination of human + system scores.
+/// For public voting: voteCount is incremented with each Vote.
 model CompetitionEntry {
   id            String  @id @default(cuid())
   competitionId String
   contestantId  String
+
+  // ── Legacy field kept for backward compat; for JURY comps we now use finalScore ──
   overallScore  Float?
+
+  // ── Weighted final score: (avg_human * 1.0 + system * 0.5) / 1.5 ──
+  finalScore    Float?
+
+  // ── Public voting fields ──
   voteCount     Int     @default(0)
+
+  // ── Leaderboard ──
   rank          Int?
+
+  // ── Admin approval ──
   approved      Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  competition  Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  contestant   Contestant   @relation(fields: [contestantId], references: [id], onDelete: Cascade)
-  scoreResults ScoreResult?
+  // ── Relations ──
+  competition  Competition   @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  contestant   Contestant    @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  scoreResult  ScoreResult?  // legacy 1:1 (kept for migration compat)
+  juryScores   JuryScore[]
+  systemScore  SystemScore?
 
+  // ── Constraints ──
   @@unique([competitionId, contestantId])
+
+  // ── Indexes for leaderboard queries ──
+  @@index([competitionId, finalScore(sort: Desc)])
+  @@index([competitionId, overallScore(sort: Desc)])
+  @@index([competitionId, voteCount(sort: Desc)])
+  @@index([competitionId, approved])
+
   @@map("competition_entries")
 }
 
+// ════════════════════════════════════════════════════════════════
+// VOTING  (Public Voting competitions)
+// ════════════════════════════════════════════════════════════════
+
+/// A single vote cast by an authenticated user in a public voting competition.
 model Vote {
   id            String   @id @default(cuid())
   competitionId String
-  contestantId  String
-  voterId       String
-  ipHash        String?
-  createdAt     DateTime @default(now())
+  contestantId  String   // which contestant received the vote
+  voterId       String   // the user casting the vote
+  ipHash        String?  // optional secondary duplicate-prevention signal
 
+  createdAt DateTime @default(now())
+
+  // ── Relations ──
   competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  contestant  Contestant  @relation(fields: [contestantId], references: [id], onDelete: Cascade)
   voter       User        @relation(fields: [voterId], references: [id], onDelete: Cascade)
 
+  // ── KEY CONSTRAINT: one vote per user per competition ──
   @@unique([competitionId, voterId])
+
+  @@index([competitionId, contestantId])
   @@map("votes")
 }
 
+// ════════════════════════════════════════════════════════════════
+// SCORING  (Jury competitions)
+// ════════════════════════════════════════════════════════════════
+
+/// Legacy ScoreResult table — kept for backward compat with existing data.
+/// New scoring goes through JuryScore (human) and SystemScore (LLM).
 model ScoreResult {
-  id                  String @id @default(cuid())
-  entryId             String @unique
-  presentationScore   Float?
-  confidenceScore     Float?
-  stylingScore        Float?
-  profileScore        Float?
+  id    String @id @default(cuid())
+  entryId String @unique
+
+  presentationScore    Float?
+  confidenceScore      Float?
+  stylingScore         Float?
+  profileScore         Float?
   professionalismScore Float?
-  overallScore        Float?
+  overallScore Float?
 
   createdAt DateTime @default(now())
 
   entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@map("score_results")
+}
+
+/// Per-jury-member score for a competition entry.
+/// Each juror scores each entry once (upsertable).
+/// Scale: 1–10 per category.
+model JuryScore {
+  id      String @id @default(cuid())
+  entryId String
+  juryId  String   // the jury User.id
+
+  // ── Category scores (1–10) ──
+  presentationScore    Float
+  confidenceScore      Float
+  stylingScore         Float
+  profileScore         Float
+  professionalismScore Float
+
+  // ── Average of the 5 categories ──
+  overallScore Float
+
+  // ── Optional text feedback ──
+  comments String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  jury  User             @relation(fields: [juryId], references: [id], onDelete: Cascade)
+
+  // Each jury member can only score an entry once
+  @@unique([entryId, juryId])
+  @@index([entryId])
+  @@map("jury_scores")
+}
+
+/// LLM-generated system score for a competition entry.
+/// One per entry; idempotent — only regenerated if explicitly requested.
+/// Scale: 1–10 per category.
+model SystemScore {
+  id      String @id @default(cuid())
+  entryId String @unique
+
+  // ── Category scores (1–10) ──
+  presentationScore    Float
+  confidenceScore      Float
+  stylingScore         Float
+  profileScore         Float
+  professionalismScore Float
+
+  // ── Average of the 5 categories ──
+  overallScore Float
+
+  // ── Metadata ──
+  modelName String     // e.g. "gpt-4o" or "gemini-2.0-flash"
+  rawOutput String? @db.Text  // full LLM JSON for debugging
+
+  createdAt DateTime @default(now())
+
+  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@map("system_scores")
 }

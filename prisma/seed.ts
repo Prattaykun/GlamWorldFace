@@ -96,10 +96,26 @@ async function main() {
   });
   console.log(`  ✓ Competition: ${publicComp.title}`);
 
+  // ── Jury User ──
+  const juryPassword = await bcrypt.hash("jury123!", 12);
+  const juryUser = await prisma.user.upsert({
+    where: { email: "jury@glamworldface.com" },
+    update: {},
+    create: {
+      name: "Expert Juror",
+      email: "jury@glamworldface.com",
+      passwordHash: juryPassword,
+      role: UserRole.JURY,
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`  ✓ Jury user: ${juryUser.email} (role: ${juryUser.role})`);
+
   console.log("\n✅ Seed complete!");
   console.log("\n📋 Test credentials:");
   console.log("   Admin:      admin@glamworldface.com / admin123!");
   console.log("   Contestant: demo@glamworldface.com / contestant123!");
+  console.log("   Jury:       jury@glamworldface.com / jury123!");
   console.log("   Public:     viewer@glamworldface.com / public123!");
 }
 

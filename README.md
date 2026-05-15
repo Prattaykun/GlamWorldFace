@@ -75,6 +75,7 @@ The database seeding script creates the following accounts for testing purposes:
 | :--- | :--- | :--- |
 | **Admin** | `admin@glamworldface.com` | `admin123!` |
 | **Contestant** | `demo@glamworldface.com` | `contestant123!` |
+| **Jury** | `jury@glamworldface.com` | `jury123!` |
 | **Public Viewer** | `viewer@glamworldface.com` | `public123!` |
 
 ## 📊 Database Management
