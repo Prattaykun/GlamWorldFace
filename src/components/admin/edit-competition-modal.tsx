@@ -26,7 +26,9 @@ import { toast } from "sonner";
 import type { Competition } from "@/generated/prisma/client";
 
 interface EditCompetitionModalProps {
-  competition: Competition;
+  competition: Competition & {
+    juryAssignments?: { juryUser: { email: string } }[];
+  };
 }
 
 export function EditCompetitionModal({ competition }: EditCompetitionModalProps) {
@@ -55,6 +57,10 @@ export function EditCompetitionModal({ competition }: EditCompetitionModalProps)
   if (competition.scoringThresholds) {
     initialThresholds = JSON.stringify(competition.scoringThresholds, null, 2);
   }
+
+  const initialJuryEmails = competition.juryAssignments
+    ?.map((a) => a.juryUser.email)
+    .join(", ") || "";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -178,7 +184,23 @@ export function EditCompetitionModal({ competition }: EditCompetitionModalProps)
               <div className="space-y-4 rounded-xl border border-purple-500/20 bg-purple-500/5 p-5">
                 <div className="flex items-center gap-2 text-sm font-semibold text-purple-700 dark:text-purple-300">
                   <Bot className="size-4" />
-                  AI Scoring Configuration
+                  AI Scoring Configuration & Jury Assignment
+                </div>
+
+                <div className="grid gap-2 mb-4">
+                  <Label htmlFor="juryEmails">Jury Member Emails</Label>
+                  <Textarea
+                    key={initialJuryEmails}
+                    id="juryEmails"
+                    name="juryEmails"
+                    defaultValue={initialJuryEmails}
+                    rows={2}
+                    placeholder="jury1@example.com, jury2@example.com"
+                    className="resize-none"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Comma-separated emails of users who have the JURY role.
+                  </p>
                 </div>
 
                 <p className="text-xs text-muted-foreground">

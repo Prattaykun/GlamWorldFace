@@ -36,6 +36,7 @@ const CompetitionSchema = z.object({
   endDate: z.string().min(1, "End date is required"),
   scoringCriteria: z.string().max(5000).optional().nullable(),
   scoringThresholds: z.string().max(5000).optional().nullable(),
+  juryEmails: z.string().optional().nullable(),
 }).refine((d) => new Date(d.startDate) < new Date(d.endDate), {
   message: "End date must be after start date",
   path: ["endDate"],
@@ -64,6 +65,7 @@ export async function createCompetitionAction(
       endDate: formData.get("endDate"),
       scoringCriteria: formData.get("scoringCriteria") || null,
       scoringThresholds: formData.get("scoringThresholds") || null,
+      juryEmails: formData.get("juryEmails") || null,
     };
 
     const parsed = CompetitionSchema.safeParse(raw);
@@ -97,6 +99,27 @@ export async function createCompetitionAction(
       },
     });
 
+    // ── Handle Jury Assignments ──
+    if (data.juryEmails && data.competitionType === "JURY") {
+      const emails = data.juryEmails.split(",").map((e) => e.trim()).filter(Boolean);
+      if (emails.length > 0) {
+        const juryUsers = await prisma.user.findMany({
+          where: { email: { in: emails }, role: "JURY" },
+          select: { id: true },
+        });
+
+        if (juryUsers.length > 0) {
+          await prisma.juryAssignment.createMany({
+            data: juryUsers.map((u) => ({
+              competitionId: competition.id,
+              juryUserId: u.id,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+    }
+
     revalidatePath("/admin/competitions");
     revalidatePath("/competitions");
     return { success: true, id: competition.id };
@@ -127,6 +150,7 @@ export async function editCompetitionAction(
       endDate: formData.get("endDate"),
       scoringCriteria: formData.get("scoringCriteria") || null,
       scoringThresholds: formData.get("scoringThresholds") || null,
+      juryEmails: formData.get("juryEmails") || null,
     };
 
     const parsed = CompetitionSchema.safeParse(raw);
@@ -158,6 +182,41 @@ export async function editCompetitionAction(
         scoringThresholds: thresholdsJson,
       },
     });
+
+    // ── Handle Jury Assignments ──
+    if (data.competitionType === "JURY") {
+      const emails = (data.juryEmails || "").split(",").map((e) => e.trim()).filter(Boolean);
+      
+      if (emails.length === 0) {
+        await prisma.juryAssignment.deleteMany({ where: { competitionId: id } });
+      } else {
+        const juryUsers = await prisma.user.findMany({
+          where: { email: { in: emails }, role: "JURY" },
+          select: { id: true },
+        });
+        
+        const juryUserIds = juryUsers.map(u => u.id);
+
+        await prisma.juryAssignment.deleteMany({
+          where: {
+            competitionId: id,
+            juryUserId: { notIn: juryUserIds },
+          },
+        });
+
+        if (juryUserIds.length > 0) {
+          await prisma.juryAssignment.createMany({
+            data: juryUserIds.map((uid) => ({
+              competitionId: id,
+              juryUserId: uid,
+            })),
+            skipDuplicates: true,
+          });
+        }
+      }
+    } else {
+      await prisma.juryAssignment.deleteMany({ where: { competitionId: id } });
+    }
 
     revalidatePath("/admin/competitions");
     revalidatePath("/competitions");

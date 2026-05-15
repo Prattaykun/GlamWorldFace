@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { approveEntryAction } from "@/app/actions/competition";
 import { triggerSystemScoreAction, assignJuryAction } from "@/app/actions/jury";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Check, X, Bot, Loader2, UserPlus } from "lucide-react";
+import { Check, X, Bot, Loader2, UserPlus, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import type { CompetitionType } from "@/generated/prisma/client";
 
@@ -266,17 +267,30 @@ export function EntryList({
 
                       {/* AI System Score Re-trigger (JURY & Approved) */}
                       {competitionType === "JURY" && entry.approved && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-8 gap-1"
-                          onClick={() => handleSystemScore(entry.id)}
-                          disabled={loadingId !== null}
-                          title="Re-generate AI score (overrides previous)"
-                        >
-                          {loadingId === `score-${entry.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Bot className="size-3.5" />}
-                          Re-score AI
-                        </Button>
+                        <>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="h-8 gap-1"
+                            onClick={() => handleSystemScore(entry.id)}
+                            disabled={loadingId !== null}
+                            title="Re-generate AI score (overrides previous)"
+                          >
+                            {loadingId === `score-${entry.id}` ? <Loader2 className="size-3.5 animate-spin" /> : <Bot className="size-3.5" />}
+                            Re-score AI
+                          </Button>
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1"
+                          >
+                            <Link href={`/admin/competitions/${competitionId}/entries/${entry.id}`}>
+                              <BarChart3 className="size-3.5" />
+                              Scores
+                            </Link>
+                          </Button>
+                        </>
                       )}
                     </div>
                   </td>

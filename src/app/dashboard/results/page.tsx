@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Trophy, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { StatusBadge, TypeBadge } from "@/components/competitions/status-badge";
 
 export const metadata: Metadata = { title: "My Results" };
@@ -193,6 +194,18 @@ export default async function ResultsPage() {
                     <p className="text-sm text-muted-foreground text-center py-8">
                       No scores available yet for this competition.
                     </p>
+                  )}
+
+                  {/* Link to detailed analysis */}
+                  {entry.competition.competitionType === "JURY" && (
+                    <div className="pt-2 border-t border-border">
+                      <Button asChild variant="outline" size="sm" className="w-full gap-2">
+                        <Link href={`/dashboard/competitions/${entry.competitionId}`}>
+                          <BarChart3 className="size-3.5" />
+                          View Detailed Analysis
+                        </Link>
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>

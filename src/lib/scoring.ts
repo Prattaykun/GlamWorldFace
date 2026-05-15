@@ -213,14 +213,14 @@ async function scoreWithGemini(prompt: string): Promise<LLMScoringResult> {
   const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
   const response = await genAI.models.generateContent({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
     contents: prompt,
   });
 
   const raw = response.text ?? "";
   const scores = parseScores(raw);
 
-  return { ...scores, modelName: "gemini-2.0-flash", rawOutput: raw };
+  return { ...scores, modelName: "gemini-2.5-flash", rawOutput: raw };
 }
 
 // ════════════════════════════════════════════════════════════

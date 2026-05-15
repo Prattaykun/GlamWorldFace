@@ -19,6 +19,11 @@ export default async function AdminCompetitionsPage() {
       _count: {
         select: { entries: true },
       },
+      juryAssignments: {
+        include: {
+          juryUser: { select: { email: true } },
+        },
+      },
     },
   });
 
