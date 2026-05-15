@@ -6,6 +6,8 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { AuthError } from "next-auth";
+
 /* ── Validation Schemas ── */
 
 const LoginSchema = z.object({
@@ -24,6 +26,7 @@ const RegisterSchema = z.object({
     .min(8, "Password must be at least 8 characters.")
     .regex(/[a-zA-Z]/, "Password must contain at least one letter.")
     .regex(/[0-9]/, "Password must contain at least one number."),
+  role: z.enum(["PUBLIC", "CONTESTANT"]).default("PUBLIC"),
 });
 
 /* ── Types ── */
@@ -44,6 +47,7 @@ export async function loginAction(
     email: formData.get("email") as string,
     password: formData.get("password") as string,
   };
+  const callbackUrl = formData.get("callbackUrl") as string | null;
 
   const validated = LoginSchema.safeParse(raw);
 
@@ -59,11 +63,19 @@ export async function loginAction(
       password: validated.data.password,
       redirect: false,
     });
-  } catch {
-    return { error: "Invalid email or password." };
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case "CredentialsSignin":
+          return { error: "Invalid email or password." };
+        default:
+          return { error: "Something went wrong." };
+      }
+    }
+    throw error; // Rethrow NEXT_REDIRECT error if it occurs
   }
 
-  redirect("/dashboard");
+  redirect(callbackUrl || "/dashboard");
 }
 
 /* ── Register Action ── */
@@ -76,6 +88,7 @@ export async function registerAction(
     name: formData.get("name") as string,
     email: formData.get("email") as string,
     password: formData.get("password") as string,
+    role: (formData.get("role") as string) || "PUBLIC",
   };
 
   const validated = RegisterSchema.safeParse(raw);
@@ -86,7 +99,7 @@ export async function registerAction(
     };
   }
 
-  const { name, email, password } = validated.data;
+  const { name, email, password, role } = validated.data;
 
   // Check for existing user
   const existingUser = await prisma.user.findUnique({
@@ -105,7 +118,7 @@ export async function registerAction(
       name,
       email,
       passwordHash,
-      role: "CONTESTANT",
+      role,
     },
   });
 
@@ -125,8 +138,9 @@ export async function registerAction(
 
 /* ── Google Sign In ── */
 
-export async function googleSignIn() {
-  await signIn("google", { redirectTo: "/dashboard" });
+export async function googleSignIn(formData: FormData) {
+  const callbackUrl = formData.get("callbackUrl") as string | null;
+  await signIn("google", { redirectTo: callbackUrl || "/dashboard" });
 }
 
 /* ── Sign Out ── */

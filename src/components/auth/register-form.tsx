@@ -19,6 +19,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export function RegisterForm() {
   const [state, action, pending] = useActionState<AuthState, FormData>(
@@ -133,6 +140,19 @@ export function RegisterForm() {
                   {state.fieldErrors.password[0]}
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">I want to...</Label>
+              <Select name="role" defaultValue="PUBLIC">
+                <SelectTrigger id="role" className="w-full">
+                  <SelectValue placeholder="Select your role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PUBLIC">Just vote and support contestants</SelectItem>
+                  <SelectItem value="CONTESTANT">Participate as a contestant</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <Button type="submit" className="w-full" disabled={pending}>

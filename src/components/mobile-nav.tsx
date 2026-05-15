@@ -4,7 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Menu, LogOut, Shield, LayoutDashboard, User } from "lucide-react";
+import {
+  Menu,
+  LogOut,
+  Shield,
+  LayoutDashboard,
+  User,
+  Trophy,
+  BarChart3,
+  Gavel,
+} from "lucide-react";
 import { signOutAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,12 +39,40 @@ function getInitials(name: string | null | undefined): string {
     .slice(0, 2);
 }
 
+// Role-specific dashboard links shown in the mobile drawer
+function getDashboardLinks(role?: string) {
+  switch (role) {
+    case "ADMIN":
+      return [
+        { href: "/admin", label: "Admin Overview", icon: Shield },
+        { href: "/admin/competitions", label: "Competitions", icon: Trophy },
+        { href: "/admin/users", label: "Users", icon: User },
+      ];
+    case "JURY":
+      return [
+        { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+        { href: "/jury", label: "Jury Dashboard", icon: Gavel },
+      ];
+    case "CONTESTANT":
+      return [
+        { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+        { href: "/dashboard/profile", label: "My Profile", icon: User },
+        { href: "/dashboard/competitions", label: "My Competitions", icon: Trophy },
+        { href: "/dashboard/results", label: "Results", icon: BarChart3 },
+      ];
+    default:
+      return [
+        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      ];
+  }
+}
+
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user;
-  const isAdmin = user?.role === "ADMIN";
+  const dashboardLinks = getDashboardLinks(user?.role);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -60,7 +97,7 @@ export function MobileNav() {
 
         <Separator />
 
-        {/* Main nav */}
+        {/* Public nav items */}
         <nav className="flex flex-col gap-1 p-4" aria-label="Mobile navigation">
           {mainNavItems.map((item) => {
             const isActive = pathname === item.href;
@@ -101,44 +138,36 @@ export function MobileNav() {
                   <p className="truncate text-xs text-muted-foreground">
                     {user.email}
                   </p>
+                  <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary/70">
+                    {user.role}
+                  </p>
                 </div>
               </div>
 
-              {/* Dashboard links */}
+              {/* Role-specific dashboard links */}
               <div className="flex flex-col gap-1">
-                <Link
-                  href="/dashboard"
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    pathname === "/dashboard"
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                >
-                  <LayoutDashboard className="size-4" />
-                  Dashboard
-                </Link>
-
-                <Link
-                  href="/dashboard/profile"
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  <User className="size-4" />
-                  Profile
-                </Link>
-
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Shield className="size-4" />
-                    Admin Panel
-                  </Link>
-                )}
+                {dashboardLinks.map(({ href, label, icon: Icon }) => {
+                  const active =
+                    href === "/dashboard" || href === "/admin" || href === "/jury"
+                      ? pathname === href
+                      : pathname.startsWith(href);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                    >
+                      <Icon className="size-4" />
+                      {label}
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Sign out */}

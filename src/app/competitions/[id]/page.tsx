@@ -157,7 +157,6 @@ export default async function CompetitionDetailPage({ params }: Props) {
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Contestants Tab ── */}
           <TabsContent value="contestants" className="mt-6">
             {competition.entries.length === 0 ? (
               <p className="py-12 text-center text-sm text-muted-foreground">
@@ -167,59 +166,74 @@ export default async function CompetitionDetailPage({ params }: Props) {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {competition.entries.map((entry) => {
                   const isOwn = entry.contestant.userId === userId;
+                  const name = entry.contestant.user.name ?? "Unknown";
                   return (
                     <div
                       key={entry.id}
-                      className="flex flex-col gap-3 rounded-xl border border-border/80 bg-card p-4"
+                      className="relative overflow-hidden flex flex-col gap-0 rounded-2xl border border-border/80 bg-card transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
                     >
-                      {/* Avatar + name */}
-                      <div className="flex items-center gap-3">
-                        <div className="relative size-12 shrink-0 overflow-hidden rounded-full border border-border bg-muted">
-                          {entry.contestant.profileImage ? (
-                            <Image
-                              src={entry.contestant.profileImage}
-                              alt={entry.contestant.user.name ?? "Contestant"}
-                              fill
-                              unoptimized={entry.contestant.profileImage.startsWith("/")}
-                              className="object-cover"
-                              sizes="48px"
-                            />
-                          ) : (
-                            <div className="flex size-full items-center justify-center text-sm font-bold text-muted-foreground">
-                              {(entry.contestant.user.name ?? "?")[0].toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <Link href={`/contestants/${entry.contestant.id}`} className="truncate font-medium hover:text-primary hover:underline transition-colors block">
-                            {entry.contestant.user.name ?? "Unknown"}
-                          </Link>
-                          {entry.contestant.country && (
-                            <p className="text-xs text-muted-foreground">{entry.contestant.country}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Vote count or score */}
-                      {competition.competitionType === "PUBLIC_VOTING" && (
-                        <p className="text-xs text-muted-foreground">
-                          {entry.voteCount.toLocaleString()} vote{entry.voteCount !== 1 ? "s" : ""}
-                        </p>
-                      )}
-
-                      {/* Vote button */}
-                      {competition.competitionType === "PUBLIC_VOTING" &&
-                        competition.status === "ACTIVE" &&
-                        userId && (
-                          <div className="mt-auto">
-                            <VoteButton
-                              competitionId={id}
-                              contestantId={entry.contestantId}
-                              hasVoted={hasVotedAlready}
-                              isOwn={isOwn}
-                            />
+                      {/* Profile image */}
+                      <Link
+                        href={`/contestants/${entry.contestantId}/vote/${id}`}
+                        className="relative block aspect-[3/4] w-full overflow-hidden bg-muted"
+                      >
+                        {entry.contestant.profileImage ? (
+                          <Image
+                            src={entry.contestant.profileImage}
+                            alt={name}
+                            fill
+                            unoptimized={entry.contestant.profileImage.startsWith("/")}
+                            className="object-cover transition-transform duration-500 hover:scale-105"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          />
+                        ) : (
+                          <div className="flex size-full items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 text-5xl font-black text-primary/30">
+                            {name[0].toUpperCase()}
                           </div>
                         )}
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-transparent to-transparent" />
+                        {/* Name on image */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4">
+                          <p className="font-semibold leading-tight">{name}</p>
+                          {entry.contestant.country && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {entry.contestant.country}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+
+                      {/* Footer */}
+                      <div className="flex items-center justify-between gap-2 border-t border-border/60 p-3">
+                        {/* Vote count */}
+                        {competition.competitionType === "PUBLIC_VOTING" && (
+                          <span className="text-xs text-muted-foreground">
+                            ❤️ {entry.voteCount.toLocaleString()} vote{entry.voteCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+
+                        <div className="ml-auto flex items-center gap-2">
+                          <Link
+                            href={`/contestants/${entry.contestantId}/vote/${id}`}
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                          >
+                            View →
+                          </Link>
+                          {/* Vote button (only for public voting, active, and authenticated non-owners) */}
+                          {competition.competitionType === "PUBLIC_VOTING" &&
+                            competition.status === "ACTIVE" &&
+                            userId &&
+                            !isOwn && (
+                              <VoteButton
+                                competitionId={id}
+                                contestantId={entry.contestantId}
+                                hasVoted={hasVotedAlready}
+                                isOwn={isOwn}
+                              />
+                            )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

@@ -6,44 +6,68 @@ import {
   User,
   Trophy,
   BarChart3,
-  Settings,
   Shield,
   LayoutDashboard,
+  Gavel,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// ── Contestant-only links ────────────────────────────────────
 const contestantLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/profile", label: "My Profile", icon: User },
-  { href: "/dashboard/competitions", label: "Competitions", icon: Trophy },
+  { href: "/dashboard/competitions", label: "My Competitions", icon: Trophy },
   { href: "/dashboard/results", label: "Results", icon: BarChart3 },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];
 
+// ── Admin-only links (no contestant links mixed in) ───────────
 const adminLinks = [
   { href: "/admin", label: "Admin Overview", icon: Shield },
   { href: "/admin/competitions", label: "Competitions", icon: Trophy },
   { href: "/admin/users", label: "Users", icon: User },
 ];
 
+// ── Jury-only links ──────────────────────────────────────────
 const juryLinks = [
-  { href: "/jury", label: "Jury Dashboard", icon: BarChart3 },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/jury", label: "Jury Dashboard", icon: Gavel },
 ];
+
+// ── Public / unrecognised role ───────────────────────────────
+const publicLinks = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+];
+
+function getLinks(role?: string) {
+  switch (role) {
+    case "ADMIN":
+      return adminLinks;
+    case "JURY":
+      return juryLinks;
+    case "CONTESTANT":
+      return contestantLinks;
+    default:
+      return publicLinks;
+  }
+}
 
 export function DashboardSidebar({ role }: { role?: string }) {
   const pathname = usePathname();
-  let links = contestantLinks;
-  if (role === "ADMIN") links = [...contestantLinks, ...adminLinks];
-  else if (role === "JURY") links = [...contestantLinks, ...juryLinks];
+  const links = getLinks(role);
+
+  const sectionLabel =
+    role === "ADMIN" ? "Admin" : role === "JURY" ? "Jury" : "Dashboard";
 
   return (
-    <nav className="sticky top-20 flex flex-col gap-1">
+    <nav className="sticky top-20 flex flex-col gap-1" aria-label="Sidebar navigation">
       <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        Dashboard
+        {sectionLabel}
       </p>
       {links.map(({ href, label, icon: Icon }) => {
         const active =
-          href === "/dashboard" ? pathname === href : pathname.startsWith(href);
+          href === "/dashboard" || href === "/admin" || href === "/jury"
+            ? pathname === href
+            : pathname.startsWith(href);
         return (
           <Link
             key={href}

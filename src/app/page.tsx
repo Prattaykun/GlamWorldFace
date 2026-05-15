@@ -84,10 +84,10 @@ function HomeContent() {
 
       <Container className="relative py-16 sm:py-28 lg:py-36">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary sm:text-sm">
+          {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary sm:text-sm">
             <Sparkles className="size-3.5" />
             The Future of Beauty Pageants
-          </div>
+          </div> */}
 
           <h1 className="text-balance text-4xl font-extrabold tracking-tight sm:text-5xl lg:text-6xl">
             Where Beauty Meets{" "}

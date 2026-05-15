@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description: "Sign in to your GlamWorldFace account.",
 };
 
-export default function LoginPage() {
-  return <LoginForm />;
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const params = await searchParams;
+  const callbackUrl = typeof params.callbackUrl === "string" ? params.callbackUrl : undefined;
+
+  return <LoginForm callbackUrl={callbackUrl} />;
 }

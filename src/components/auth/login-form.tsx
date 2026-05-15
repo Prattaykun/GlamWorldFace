@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export function LoginForm() {
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [state, action, pending] = useActionState<AuthState, FormData>(
     loginAction,
     null
@@ -38,6 +38,7 @@ export function LoginForm() {
         <CardContent className="space-y-4">
           {/* Google Sign In */}
           <form action={googleSignIn}>
+            {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
             <Button
               type="submit"
               variant="outline"
@@ -78,6 +79,7 @@ export function LoginForm() {
 
           {/* Credentials Form */}
           <form action={action} className="space-y-4">
+            {callbackUrl && <input type="hidden" name="callbackUrl" value={callbackUrl} />}
             {state?.error && (
               <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                 {state.error}

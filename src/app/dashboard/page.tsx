@@ -39,7 +39,7 @@ export default async function DashboardPage() {
         ? "Browse and join competitions"
         : "View available competitions",
       icon: Trophy,
-      href: "/competitions",
+      href: isContestant ? "/dashboard/competitions" : "/competitions",
     },
     {
       title: "Results",

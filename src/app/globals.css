@@ -178,3 +178,44 @@
     text-wrap: balance;
   }
 }
+
+/* ── Voted ribbon (corner ribbon effect) ── */
+@layer components {
+  /* The card itself needs `overflow-hidden` and `relative` */
+  .voted-ribbon {
+    position: absolute;
+    top: 16px;
+    right: -28px;
+    width: 110px;
+    padding: 5px 0;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transform: rotate(45deg);
+    transform-origin: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    pointer-events: none;
+    user-select: none;
+    z-index: 10;
+  }
+
+  /* Entrance animation */
+  .voted-ribbon-enter {
+    animation: ribbonSlideIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+
+  @keyframes ribbonSlideIn {
+    from {
+      opacity: 0;
+      transform: rotate(45deg) scale(0.6);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(45deg) scale(1);
+    }
+  }
+}
